@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Queue System</title>
+
+  <script>
+    let wiatTicketNumber = -1;
+    function getTicketNumber() {
+      return document.getElementById("ticketNumber");
+    }
+
+    async function enterQueue() {
+      const response = await fetch('/queue/enter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      wiatTicketNumber = data.ticketNumber;
+      getTicketNumber().innerText = "Your ticker number: " + wiatTicketNumber;
+
+      checkStatus();
+    }
+
+    function formatDate(date) {
+      return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}:${date.getMilliseconds()}`;
+    }
+
+    function checkStatus() {
+      const socket = new WebSocket("ws://localhost:8080/order-queue");
+
+      socket.onmessage = function(event) {
+        const { ticketNumber } = JSON.parse(event.data);
+
+        const currentWaitNumber = wiatTicketNumber - ticketNumber;
+        document.getElementById("status").innerText = `대기 순번: ${currentWaitNumber}`;
+        document.getElementById("refresh").innerText = formatDate(new Date());
+
+        if (currentWaitNumber < 1)
+          location.href = "home";
+      }
+    }
+  </script>
+</head>
+<body>
+<div>
+  <button onclick="enterQueue()">Enter Queue</button>
+</div>
+<div>
+  <p id="ticketNumber"></p>
+  <p id="status"></p>
+  <p id="refresh"></p>
+</div>
+</body>
+</html>
